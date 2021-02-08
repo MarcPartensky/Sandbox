@@ -29,7 +29,7 @@ from flask import Flask, request
 app = Flask(__name__)
 epicbox.configure(
     profiles=[
-        epicbox.Profile('python', 'python:3.6.5-alpine')
+        epicbox.Profile('python', 'python:3.9')
     ]
 )
 
