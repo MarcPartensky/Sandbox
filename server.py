@@ -37,11 +37,11 @@ epicbox.configure(
 @app.route('/')
 def index():
     """Main view."""
-    if request.method == 'POST':
+    if request.method == 'GET':
+        return "Only post methods are accepted"
+    elif request.method == 'POST':
         login(request)
         run(request)
-
-
     return
 
 
