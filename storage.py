@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-import yaml
+
+"""Absraction over pyyaml.
+Use yaml file as a python object."""
+
 import functools
+import yaml
 
 
 class Storage:
@@ -19,7 +23,7 @@ class Storage:
     def _dict(self):
         """Return node."""
         with open(self._file, "r") as stream:
-            content = yaml.safe_load(stream)
+            content = yaml.safe_load(stream) or {}
         return content
 
     def __getattribute__(self, key: str):
@@ -32,23 +36,23 @@ class Storage:
     def __setattr__(self, key: str, value):
         """Set a key/value pair."""
         if key.startswith("_"):
-            return super().__setattr__(key, value)
-        self._set([key], value)
+            super().__setattr__(key, value)
+        else:
+            self._set([key], value)
 
     def _get(self, key_path: list, raw=False):
         """Get a value given a key path."""
         with open(self._file, "r") as stream:
-            content = yaml.safe_load(stream)
-            value = functools.reduce(lambda a, b: a[b], [content] + key_path)
-        if not raw and type(value) is dict:
+            content = yaml.safe_load(stream) or {}
+        value = functools.reduce(lambda a, b: a[b], [content] + key_path)
+        if not raw and isinstance(value, dict):
             return Node(self, key_path)
-        else:
-            return value
+        return value
 
     def _set(self, key_path: list, value):
         """Set a value given a key path."""
         with open(self._file, "r") as stream:
-            content = yaml.safe_load(stream)
+            content = yaml.safe_load(stream) or {}
 
         dict_ = functools.reduce(
             lambda dict_, key: dict_[key], [content] + key_path[:-1]
@@ -74,8 +78,8 @@ class Node:
         """Return the attribute of the node."""
         if key.startswith("_"):
             return super().__getattribute__(key)
-        value = self._storage._get(key)
-        if type(value) is dict:
+        value = self._storage._get(self._key_path + [key])
+        if isinstance(value, dict):
             value = Node(self, self._key_path + [key])
         return value
 
@@ -90,8 +94,8 @@ class Node:
 
     def __str__(self):
         """Return string representation of a node."""
-        storage = self._storage
-        return f"Node({self._storage._get(self._key_path, raw=True)})"
+        content = self._storage._get(self._key_path, raw=True)
+        return f"Node({content})"
 
 
 if __name__ == "__main__":
@@ -99,11 +103,11 @@ if __name__ == "__main__":
 
     storage = Storage("storage.yml")
     print(storage)
-    print(storage.a)
+    # print(storage.a)
     storage.a = 1
     storage.b = dict(c=2, d=3)
-    print("b")
+    storage.c = [1, 2, 3]
     b = storage.b
-    print(b)
-    # print("b.c")
-    # print(storage.b.c)
+    print("b:", b)
+    print("b.c", b.c)
+    print(storage.b.c)
