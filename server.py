@@ -24,7 +24,7 @@ import epicbox
 
 from flask import Flask, request
 
-
+storage = Storage("storage.yml")
 
 app = Flask(__name__)
 epicbox.configure(
@@ -33,22 +33,18 @@ epicbox.configure(
     ]
 )
 
-
 @app.route('/')
 def index():
     """Main view."""
-    if request.method == 'GET':
+    if request.method != 'POST':
         return "Only post methods are accepted"
-    elif request.method == 'POST':
-        login(request)
-        run(request)
-    return
 
+    login(request)
+    run(request)
 
 def login(request):
     """Throw error if login fails."""
-    if 
-
+    user = storage.token[request.token]
 
 def run():
     """Run the request."""
