@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Main server for running untrusted python shell commands.
 
@@ -16,39 +18,58 @@ Security:
     * Token authentication
     * Role system
     * IP whitelist
-    * Epicbox
     * HTTPS only, if token are sent in HTTP they will be reset
 """
-import pickle
-import epicbox
+
+import subprocess
 
 from flask import Flask, request
+from flask_httpauth import HTTPTokenAuth
+
+from storage import Storage
 
 storage = Storage("storage.yml")
 
 app = Flask(__name__)
-epicbox.configure(
-    profiles=[
-        epicbox.Profile('python', 'python:3.9')
-    ]
-)
 
-@app.route('/')
+auth = HTTPTokenAuth(scheme="Bearer")
+
+tokens = storage.tokens
+users = storage.users
+sessions = storage.sessions
+
+
+@auth.verify_token
+def verify_token(token):
+    """Check the token of the user."""
+    if token in tokens:
+        return tokens[token]
+
+
+@app.route("/")
+@auth.login_required
 def index():
-    """Main view."""
-    if request.method != 'POST':
-        return "Only post methods are accepted"
+    return f"Hello, {auth.current_user}!"
 
-    login(request)
-    run(request)
 
-def login(request):
-    """Throw error if login fails."""
-    user = storage.token[request.token]
-
+@app.route("/run")
+@auth.login_required
 def run():
-    """Run the request."""
-    files = [{'name': 'main.py', 'content': bytes(request.stdin)}]
-    limits = {'cputime': 1, 'memory': 64}
-    result = epicbox.run('python', 'python3 main.py', files=files, limits=limits)
+    """Run the code request given the following POST parameters.:
+    - stdin: code to run
+    """
+    stdin = open("./stdin")
+    stdout = open("./stdout")
+    sdterr = open("./sdterr")
+    stdin.write(request.POST.get("stdin"))
+    subprocess.run("python", stdin=stdin, stdout=stdout,
+                   stderr=stderr, shell=True)
+    stdin.close()
+    stdout.close()
+    sdterr.close()
 
+    return dict(data=data)
+
+
+# if __name__ == "__main__":
+#     app.run()
